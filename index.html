@@ -1,0 +1,991 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Image Resizer - Python Image Processor</title>
+  <link rel="icon" type="image/jpeg" href="/assets/logo.jpg">
+  
+  <!-- Font Setup -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@0.344.0/dist/umd/lucide.min.js"></script>
+
+  <!-- Tailwind Custom Configuration -->
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+        },
+      },
+    };
+  </script>
+
+  <style>
+    /* Dot Matrix Background Pattern */
+    .dot-grid-light {
+      background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
+      background-size: 20px 20px;
+      background-color: #f1f5f9;
+    }
+    .dot-grid-dark {
+      background-image: radial-gradient(#334155 1px, transparent 1px);
+      background-size: 20px 20px;
+      background-color: #0b1329;
+    }
+    
+    /* Elegant transition-colors duration */
+    .transition-theme {
+      transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+    }
+  </style>
+</head>
+<body class="min-h-screen font-sans transition-colors duration-300 bg-slate-50 text-slate-800 dark:bg-slate-950 dark:text-slate-100">
+
+  <!-- Main Container -->
+  <div id="app-container" class="max-w-6xl mx-auto px-4 py-8 md:py-12">
+    
+    <!-- Header -->
+    <header class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8 border-b pb-6 border-slate-200 dark:border-slate-800">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-lg overflow-hidden flex items-center justify-center shadow-lg shadow-indigo-600/20 border border-slate-200/60 dark:border-slate-800/60 bg-white">
+          <img src="/assets/logo.jpg" alt="Image Resizer Logo" class="w-full h-full object-cover">
+        </div>
+        <div>
+          <h1 class="text-xl font-bold text-slate-900 dark:text-white">
+            Image Resizer
+          </h1>
+          <p class="text-[10px] text-slate-500 dark:text-slate-400 font-bold tracking-wider uppercase flex items-center gap-1.5">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+            Python Engine v1.0
+          </p>
+        </div>
+      </div>
+      
+      <!-- Actions Header Row -->
+      <div class="flex items-center gap-4 w-full sm:w-auto justify-between sm:justify-end">
+        <!-- Status Pill -->
+        <div class="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 px-3 py-1.5 rounded-full border border-emerald-100 dark:border-emerald-900/30 font-bold text-xs shadow-sm">
+          <div class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+          <span>Server Live</span>
+        </div>
+
+        <!-- Theme Switcher -->
+        <div class="flex bg-slate-200 dark:bg-slate-800 p-1 rounded-full border border-slate-300/40 dark:border-slate-700/40 shadow-inner">
+          <button
+            id="theme-light-btn"
+            onclick="setTheme('light')"
+            class="px-4 py-1 rounded-full text-[11px] font-semibold transition-all cursor-pointer text-slate-500 dark:text-slate-400"
+          >
+            Light
+          </button>
+          <button
+            id="theme-dark-btn"
+            onclick="setTheme('dark')"
+            class="px-4 py-1 rounded-full text-[11px] font-semibold transition-all cursor-pointer text-slate-500 dark:text-slate-400"
+          >
+            Dark
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="fixed top-6 right-6 z-50 transform translate-y-12 opacity-0 pointer-events-none transition-all duration-350 ease-out max-w-sm w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl rounded-2xl p-4 flex items-start gap-3">
+      <div class="p-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400" id="toast-icon-container">
+        <i data-lucide="info" class="w-5 h-5"></i>
+      </div>
+      <div class="flex-1">
+        <h4 id="toast-title" class="font-semibold text-sm text-slate-900 dark:text-white">Notification</h4>
+        <p id="toast-message" class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Details here.</p>
+      </div>
+      <button onclick="hideToast()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+        <i data-lucide="x" class="w-4 h-4"></i>
+      </button>
+    </div>
+
+    <!-- Main Grid Dashboard -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      
+      <!-- Left column: Configuration Panel (4/12 width) -->
+      <div class="lg:col-span-4 space-y-4">
+        
+        <!-- Parameter Settings -->
+        <div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800/80 p-5 shadow-sm relative overflow-hidden transition-theme">
+          
+          <div class="flex items-center gap-2 mb-4 border-b border-slate-100 dark:border-slate-800 pb-3">
+            <i data-lucide="sliders" class="w-4 h-4 text-indigo-500"></i>
+            <h3 class="font-semibold text-slate-800 dark:text-slate-100 text-sm">Resizing Parameters</h3>
+          </div>
+
+          <!-- Loading Spinner Overlay -->
+          <div id="processing-overlay" class="absolute inset-0 bg-white/90 dark:bg-slate-900/95 backdrop-blur-sm z-30 flex flex-col items-center justify-center hidden">
+            <i data-lucide="refresh-cw" class="w-8 h-8 text-indigo-600 dark:text-indigo-400 animate-spin mb-3"></i>
+            <span class="font-semibold text-slate-800 dark:text-slate-200 text-sm">Processing Image...</span>
+            <span class="text-[10px] text-slate-400 mt-1 font-mono">ImageMagick CLI Active</span>
+          </div>
+
+          <!-- Upload Mask (Disabled state) -->
+          <div id="settings-disabled-mask" class="absolute inset-0 bg-slate-100/40 dark:bg-slate-950/30 backdrop-blur-[1px] z-20 flex items-center justify-center text-center p-4">
+            <div class="bg-white/95 dark:bg-slate-900/95 border border-slate-200 dark:border-slate-800 p-5 rounded-xl max-w-[240px] shadow-lg transition-theme">
+              <i data-lucide="image" class="w-6 h-6 text-slate-400 mx-auto mb-2"></i>
+              <p class="text-xs font-semibold text-slate-600 dark:text-slate-300 leading-relaxed">
+                Please upload an image first to access these parameters.
+              </p>
+            </div>
+          </div>
+
+          <!-- Form Details -->
+          <form id="resize-form" onsubmit="handleFormSubmit(event)" class="space-y-4">
+            
+            <!-- 1. Resize Method Toggle -->
+            <div>
+              <label class="block text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-2">
+                Resize Method
+              </label>
+              <div class="grid grid-cols-2 gap-2 bg-slate-50 dark:bg-slate-950 p-1 rounded-lg border border-slate-200/50 dark:border-slate-800 shadow-inner">
+                <button
+                  type="button"
+                  id="method-dimensions-btn"
+                  onclick="setResizeMethod('dimensions')"
+                  class="py-1.5 rounded-md text-xs font-bold transition-all cursor-pointer bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm border border-slate-200/50 dark:border-slate-700/50"
+                >
+                  Dimensions
+                </button>
+                <button
+                  type="button"
+                  id="method-percentage-btn"
+                  onclick="setResizeMethod('percentage')"
+                  class="py-1.5 rounded-md text-xs font-bold transition-all cursor-pointer text-slate-500 dark:text-slate-400 hover:text-slate-700"
+                >
+                  Percentage
+                </button>
+              </div>
+            </div>
+
+            <!-- 2. Dimensions Mode Panel -->
+            <div id="dimensions-panel" class="space-y-4 transition-all duration-300">
+              <div class="grid grid-cols-2 gap-3">
+                <!-- Width input -->
+                <div>
+                  <label class="block text-[11px] font-semibold text-slate-500 mb-1">
+                    Width (px)
+                  </label>
+                  <input
+                    type="number"
+                    name="width"
+                    id="resize-width"
+                    oninput="handleWidthInput(this.value)"
+                    placeholder="1920"
+                    class="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 dark:text-white transition-theme"
+                  />
+                </div>
+                <!-- Height input -->
+                <div>
+                  <label class="block text-[11px] font-semibold text-slate-500 mb-1">
+                    Height (px)
+                  </label>
+                  <input
+                    type="number"
+                    name="height"
+                    id="resize-height"
+                    oninput="handleHeightInput(this.value)"
+                    placeholder="1080"
+                    class="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 dark:text-white transition-theme"
+                  />
+                </div>
+              </div>
+
+              <!-- Keep Aspect Ratio Toggle -->
+              <button
+                type="button"
+                id="aspect-ratio-btn"
+                onclick="toggleAspectRatio()"
+                class="flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1.5 rounded-lg border transition-all cursor-pointer bg-indigo-50 border-indigo-200 text-indigo-700 dark:bg-indigo-950/20 dark:border-indigo-900/35 dark:text-indigo-300"
+              >
+                <i data-lucide="lock" class="w-3 h-3 text-indigo-500" id="aspect-ratio-icon"></i>
+                <span id="aspect-ratio-text">Maintain Aspect Ratio</span>
+              </button>
+            </div>
+
+            <!-- 3. Percentage Mode Panel -->
+            <div id="percentage-panel" class="space-y-3 hidden transition-all duration-300">
+              <div class="flex justify-between items-center text-xs">
+                <label class="font-semibold text-slate-500">
+                  Scale: <span id="scale-value" class="font-bold text-indigo-600 dark:text-indigo-400 font-mono">50%</span>
+                </label>
+                <span id="scale-resolution-preview" class="text-[10px] text-slate-400 font-mono"></span>
+              </div>
+              <input
+                type="range"
+                id="resize-percentage"
+                min="10"
+                max="200"
+                value="50"
+                oninput="handlePercentageChange(this.value)"
+                class="w-full h-1 bg-slate-100 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+              />
+              
+              <!-- Quick Presets -->
+              <div class="flex gap-1.5 justify-between">
+                <button type="button" onclick="setPercentagePreset(25)" class="flex-1 py-1 text-[10px] font-bold rounded border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-950 hover:bg-slate-100 cursor-pointer">25%</button>
+                <button type="button" onclick="setPercentagePreset(50)" class="flex-1 py-1 text-[10px] font-bold rounded border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-950 hover:bg-slate-100 cursor-pointer">50%</button>
+                <button type="button" onclick="setPercentagePreset(75)" class="flex-1 py-1 text-[10px] font-bold rounded border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-950 hover:bg-slate-100 cursor-pointer">75%</button>
+                <button type="button" onclick="setPercentagePreset(100)" class="flex-1 py-1 text-[10px] font-bold rounded border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-950 hover:bg-slate-100 cursor-pointer">100%</button>
+                <button type="button" onclick="setPercentagePreset(150)" class="flex-1 py-1 text-[10px] font-bold rounded border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-950 hover:bg-slate-100 cursor-pointer">150%</button>
+              </div>
+            </div>
+
+          </form>
+        </div>
+
+        <!-- Output Configurations -->
+        <div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800/80 p-5 shadow-sm relative overflow-hidden transition-theme">
+          
+          <div class="flex items-center gap-2 mb-4 border-b border-slate-100 dark:border-slate-800 pb-3">
+            <i data-lucide="sliders" class="w-4 h-4 text-indigo-500"></i>
+            <h3 class="font-semibold text-slate-800 dark:text-slate-100 text-sm">Output Settings</h3>
+          </div>
+
+          <!-- Configuration Mask (Disabled state) -->
+          <div id="output-disabled-mask" class="absolute inset-0 bg-slate-100/40 dark:bg-slate-950/30 backdrop-blur-[1px] z-20 flex items-center justify-center text-center p-4"></div>
+
+          <div class="space-y-4">
+            
+            <!-- Output Format -->
+            <div>
+              <label class="block text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-2">
+                Format
+              </label>
+              <div class="flex gap-2">
+                <button
+                  type="button"
+                  id="format-jpg-btn"
+                  onclick="setFormat('jpg')"
+                  class="flex-1 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-500 dark:text-slate-400 hover:bg-slate-50 transition-theme cursor-pointer"
+                >
+                  JPG
+                </button>
+                <button
+                  type="button"
+                  id="format-png-btn"
+                  onclick="setFormat('png')"
+                  class="flex-1 py-1.5 rounded-lg border border-indigo-600 bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 text-xs font-bold transition-theme cursor-pointer"
+                >
+                  PNG
+                </button>
+                <button
+                  type="button"
+                  id="format-webp-btn"
+                  onclick="setFormat('webp')"
+                  class="flex-1 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-500 dark:text-slate-400 hover:bg-slate-50 transition-theme cursor-pointer"
+                >
+                  WEBP
+                </button>
+              </div>
+            </div>
+
+            <!-- Quality Level Slider -->
+            <div>
+              <div class="flex justify-between items-center mb-1">
+                <label class="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
+                  Quality Compression
+                </label>
+                <span id="quality-value" class="text-xs font-bold text-indigo-600 dark:text-indigo-400 font-mono">80%</span>
+              </div>
+              <input
+                type="range"
+                id="output-quality"
+                min="10"
+                max="100"
+                value="80"
+                oninput="handleQualityChange(this.value)"
+                class="w-full h-1 bg-slate-100 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+              />
+            </div>
+
+            <!-- Trigger Action Row -->
+            <div class="pt-2 flex flex-col gap-2">
+              <button
+                type="button"
+                onclick="triggerProcessResize()"
+                class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold text-xs transition-all shadow-md shadow-indigo-600/15 cursor-pointer flex items-center justify-center gap-1.5"
+              >
+                <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+                Process & Resize
+              </button>
+              <button
+                type="button"
+                onclick="handleReset()"
+                class="w-full py-2.5 bg-white border border-slate-200 text-slate-500 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-400 dark:hover:text-slate-200 rounded-lg font-bold text-xs hover:border-slate-300 transition-theme cursor-pointer"
+              >
+                Reset All Parameters
+              </button>
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- Right column: Showcase Canvas & Outcomes Panel (8/12 width) -->
+      <div class="lg:col-span-8 space-y-4">
+        
+        <!-- Upload Canvas Area -->
+        <div id="upload-canvas-card" class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800/80 p-5 shadow-sm transition-theme">
+          
+          <!-- State 1: Dropzone (visible initially) -->
+          <div
+            id="dropzone"
+            ondragenter="handleDragEnter(event)"
+            ondragover="handleDragOver(event)"
+            ondragleave="handleDragLeave(event)"
+            ondrop="handleDrop(event)"
+            onclick="triggerFileInput()"
+            class="group border-2 border-dashed border-slate-300 dark:border-slate-800 hover:border-slate-400 rounded-2xl p-8 md:p-14 text-center cursor-pointer transition-theme flex flex-col items-center justify-center min-h-[440px] relative"
+          >
+            <input
+              type="file"
+              id="file-input"
+              onchange="handleFileInput(event)"
+              class="hidden"
+              accept="image/png, image/jpeg, image/jpg, image/webp"
+            />
+            
+            <div class="w-64 h-64 border-2 border-dashed border-indigo-200 dark:border-indigo-900/60 rounded-2xl flex flex-col items-center justify-center bg-white dark:bg-slate-900 shadow-xl transition-transform duration-300 group-hover:scale-[1.02]">
+              <i data-lucide="upload-cloud" class="w-10 h-10 text-indigo-500 mb-3 animate-bounce"></i>
+              <p class="text-sm font-bold text-slate-700 dark:text-slate-200">Drop your image here</p>
+              <p class="text-xs text-slate-400 mt-1">or click to browse files</p>
+            </div>
+          </div>
+
+          <!-- State 2: Preview Panel (hidden initially) -->
+          <div id="preview-container" class="space-y-4 hidden">
+            <div class="flex justify-between items-center">
+              <div class="flex items-center gap-2">
+                <i data-lucide="image" class="w-4 h-4 text-indigo-500"></i>
+                <span class="font-bold text-sm text-slate-800 dark:text-slate-100">Original Preview</span>
+              </div>
+              <button
+                onclick="handleReset()"
+                class="flex items-center gap-1 px-2.5 py-1 text-[10px] font-bold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/20 rounded border border-transparent hover:border-rose-100 transition-theme cursor-pointer"
+              >
+                <i data-lucide="trash-2" class="w-3 h-3"></i>
+                Reset
+              </button>
+            </div>
+
+            <!-- Preview image with dot-grid styling -->
+            <div id="canvas-frame" class="rounded-xl overflow-hidden flex items-center justify-center p-6 min-h-[320px] max-h-[460px] relative border border-slate-200/50 dark:border-slate-800/50 transition-theme">
+              <img
+                id="original-preview-img"
+                src=""
+                alt="Original Preview"
+                class="max-w-full max-h-[380px] object-contain rounded-lg shadow-lg border border-white/20"
+              />
+
+              <!-- Floating Dimension badges -->
+              <div class="absolute top-3 right-3 bg-white/90 dark:bg-slate-900/95 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-3 text-[10px] font-mono font-bold transition-theme">
+                <div class="text-center">
+                  <p class="text-[9px] uppercase font-bold text-slate-400">Original</p>
+                  <p id="badge-original-res" class="text-slate-800 dark:text-slate-200">-</p>
+                </div>
+                <div id="badge-divider" class="w-px h-5 bg-slate-200 dark:bg-slate-700 hidden"></div>
+                <div id="badge-resized-block" class="text-center hidden">
+                  <p class="text-[9px] uppercase font-bold text-indigo-400">New</p>
+                  <p id="badge-resized-res" class="text-indigo-600 dark:text-indigo-400">-</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Original Image Info Row -->
+            <div class="grid grid-cols-3 gap-3">
+              <div class="bg-slate-50 dark:bg-slate-950/40 p-3 rounded-lg border border-slate-100 dark:border-slate-800/50 overflow-hidden transition-theme">
+                <span class="block text-[9px] text-slate-400 font-mono tracking-wider uppercase mb-0.5">Filename</span>
+                <span id="info-filename" class="block text-xs font-bold truncate text-slate-800 dark:text-slate-200">-</span>
+              </div>
+              <div class="bg-slate-50 dark:bg-slate-950/40 p-3 rounded-lg border border-slate-100 dark:border-slate-800/50 transition-theme">
+                <span class="block text-[9px] text-slate-400 font-mono tracking-wider uppercase mb-0.5">Original Resolution</span>
+                <span id="info-resolution" class="block text-xs font-bold text-slate-800 dark:text-slate-200">-</span>
+              </div>
+              <div class="bg-slate-50 dark:bg-slate-950/40 p-3 rounded-lg border border-slate-100 dark:border-slate-800/50 transition-theme">
+                <span class="block text-[9px] text-slate-400 font-mono tracking-wider uppercase mb-0.5">Original Size</span>
+                <span id="info-size" class="block text-xs font-bold text-slate-800 dark:text-slate-200">-</span>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
+        <!-- Outcome Successful Showcase Card -->
+        <div id="outcome-card" class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800/80 p-5 shadow-sm space-y-4 hidden animate-fade-in transition-theme">
+          
+          <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+            <div class="flex items-center gap-2">
+              <div class="p-1 bg-emerald-50 dark:bg-emerald-950/30 rounded text-emerald-600 dark:text-emerald-400">
+                <i data-lucide="check-circle" class="w-4 h-4"></i>
+              </div>
+              <div>
+                <h4 class="font-bold text-xs text-slate-900 dark:text-white">Resizing Successful</h4>
+                <p class="text-[10px] text-slate-400">Your processed image is ready for download</p>
+              </div>
+            </div>
+            <span class="bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider">
+              Ready
+            </span>
+          </div>
+
+          <!-- Statistics side by side -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            
+            <!-- File Size contrast tracker -->
+            <div class="bg-slate-50 dark:bg-slate-950/25 rounded-xl p-3.5 border border-slate-150 dark:border-slate-800/60 shadow-sm space-y-2 transition-theme">
+              <span class="text-[10px] uppercase font-bold text-slate-400">File Size Contrast</span>
+              <div class="flex justify-between items-center text-xs">
+                <span class="text-slate-500">Before:</span>
+                <span id="outcome-size-before" class="font-mono font-medium">-</span>
+              </div>
+              <div class="flex justify-between items-center text-xs">
+                <span class="text-slate-500 font-bold">After:</span>
+                <span id="outcome-size-after" class="font-mono font-bold text-emerald-600 dark:text-emerald-400">-</span>
+              </div>
+              <div class="pt-2 border-t border-slate-200/55 dark:border-slate-800 flex items-center justify-between">
+                <span class="text-[10px] text-slate-400">Storage Savings:</span>
+                <span id="outcome-size-savings" class="text-[10px] font-bold text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded flex items-center gap-1">
+                  <i data-lucide="sparkles" class="w-2.5 h-2.5"></i>
+                  <span>-</span>
+                </span>
+              </div>
+            </div>
+
+            <!-- Dimensions difference tracker -->
+            <div class="bg-slate-50 dark:bg-slate-950/25 rounded-xl p-3.5 border border-slate-150 dark:border-slate-800/60 shadow-sm space-y-2 transition-theme">
+              <span class="text-[10px] uppercase font-bold text-slate-400">Dimensions Contrast</span>
+              <div class="flex justify-between items-center text-xs">
+                <span class="text-slate-500">Before:</span>
+                <span id="outcome-res-before" class="font-mono font-medium">-</span>
+              </div>
+              <div class="flex justify-between items-center text-xs">
+                <span class="text-slate-500 font-bold">After:</span>
+                <span id="outcome-res-after" class="font-mono font-bold text-indigo-600 dark:text-indigo-400">-</span>
+              </div>
+              <div class="pt-2 border-t border-slate-200/55 dark:border-slate-800 flex items-center justify-between">
+                <span class="text-[10px] text-slate-400">Output Format:</span>
+                <span id="outcome-format-badge" class="text-[10px] font-bold text-slate-700 dark:text-slate-300 uppercase bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded transition-theme">-</span>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Main high-contrast download call to action -->
+          <button
+            type="button"
+            onclick="downloadProcessedImage()"
+            class="w-full flex items-center justify-center gap-2 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold transition-all shadow-lg shadow-emerald-600/25 cursor-pointer text-sm"
+          >
+            <i data-lucide="download" class="w-4 h-4 animate-bounce"></i>
+            Download Optimized Image
+          </button>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- Client-Side State Controller Logic -->
+  <script>
+    // App variables
+    let theme = "dark";
+    let activeFile = null;
+    let originalWidth = 0;
+    let originalHeight = 0;
+    let originalSize = 0;
+    let aspectMultiplier = 1;
+    
+    // Config state
+    let resizeMode = "dimensions"; // 'dimensions' or 'percentage'
+    let maintainAspectRatio = true;
+    let outputFormat = "png";
+    let outputQuality = 80;
+    let percentageScale = 50;
+    
+    // Processed outcome state
+    let processedDataUrl = null;
+    let processedFilename = null;
+
+    // Run Initialization
+    window.addEventListener("DOMContentLoaded", () => {
+      // Setup Lucide icons
+      lucide.createIcons();
+      
+      // Enforce dark mode by default
+      setTheme("dark");
+      
+      // Initial disabled masks state
+      updateInterfaceState();
+    });
+
+    // Theme Selector
+    function setTheme(newTheme) {
+      theme = newTheme;
+      const htmlEl = document.documentElement;
+      const lightBtn = document.getElementById("theme-light-btn");
+      const darkBtn = document.getElementById("theme-dark-btn");
+      const canvasFrame = document.getElementById("canvas-frame");
+      const dropzone = document.getElementById("dropzone");
+      
+      if (theme === "dark") {
+        htmlEl.classList.add("dark");
+        darkBtn.className = "px-4 py-1 rounded-full text-[11px] font-semibold transition-all cursor-pointer bg-slate-700 text-white shadow-sm";
+        lightBtn.className = "px-4 py-1 rounded-full text-[11px] font-semibold transition-all cursor-pointer text-slate-500 dark:text-slate-400 hover:text-slate-200";
+        
+        // Canvas styles
+        if (canvasFrame) {
+          canvasFrame.className = "rounded-xl overflow-hidden flex items-center justify-center p-6 min-h-[320px] max-h-[460px] relative border border-slate-200/50 dark:border-slate-800/50 transition-theme dot-grid-dark";
+        }
+        if (dropzone) {
+          dropzone.className = "group border-2 border-dashed border-slate-300 dark:border-slate-800 hover:border-slate-400 rounded-2xl p-8 md:p-14 text-center cursor-pointer transition-theme flex flex-col items-center justify-center min-h-[440px] relative dot-grid-dark";
+        }
+      } else {
+        htmlEl.classList.remove("dark");
+        lightBtn.className = "px-4 py-1 rounded-full text-[11px] font-semibold transition-all cursor-pointer bg-white text-slate-900 shadow-sm border border-slate-200/40";
+        darkBtn.className = "px-4 py-1 rounded-full text-[11px] font-semibold transition-all cursor-pointer text-slate-500 hover:text-slate-800";
+        
+        // Canvas styles
+        if (canvasFrame) {
+          canvasFrame.className = "rounded-xl overflow-hidden flex items-center justify-center p-6 min-h-[320px] max-h-[460px] relative border border-slate-200/50 dark:border-slate-800/50 transition-theme dot-grid-light";
+        }
+        if (dropzone) {
+          dropzone.className = "group border-2 border-dashed border-slate-300 dark:border-slate-800 hover:border-slate-400 rounded-2xl p-8 md:p-14 text-center cursor-pointer transition-theme flex flex-col items-center justify-center min-h-[440px] relative dot-grid-light";
+        }
+      }
+    }
+
+    // Toggle Resize Methods (dimensions vs percentage)
+    function setResizeMethod(method) {
+      resizeMode = method;
+      const dimBtn = document.getElementById("method-dimensions-btn");
+      const pctBtn = document.getElementById("method-percentage-btn");
+      const dimPanel = document.getElementById("dimensions-panel");
+      const pctPanel = document.getElementById("percentage-panel");
+      
+      if (method === "dimensions") {
+        dimBtn.className = "py-1.5 rounded-md text-xs font-bold transition-all cursor-pointer bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm border border-slate-200/50 dark:border-slate-700/50";
+        pctBtn.className = "py-1.5 rounded-md text-xs font-bold transition-all cursor-pointer text-slate-500 dark:text-slate-400 hover:text-slate-700";
+        dimPanel.classList.remove("hidden");
+        pctPanel.classList.add("hidden");
+      } else {
+        pctBtn.className = "py-1.5 rounded-md text-xs font-bold transition-all cursor-pointer bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm border border-slate-200/50 dark:border-slate-700/50";
+        dimBtn.className = "py-1.5 rounded-md text-xs font-bold transition-all cursor-pointer text-slate-500 dark:text-slate-400 hover:text-slate-700";
+        pctPanel.classList.remove("hidden");
+        dimPanel.classList.add("hidden");
+        updateScaleResolutionPreview();
+      }
+    }
+
+    // Aspect Ratio toggle lock / unlock
+    function toggleAspectRatio() {
+      maintainAspectRatio = !maintainAspectRatio;
+      const aspectBtn = document.getElementById("aspect-ratio-btn");
+      const aspectText = document.getElementById("aspect-ratio-text");
+      const icon = document.getElementById("aspect-ratio-icon");
+      
+      if (maintainAspectRatio) {
+        aspectBtn.className = "flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1.5 rounded-lg border transition-all cursor-pointer bg-indigo-50 border-indigo-200 text-indigo-700 dark:bg-indigo-950/20 dark:border-indigo-900/35 dark:text-indigo-300";
+        aspectText.textContent = "Maintain Aspect Ratio";
+        icon.setAttribute("data-lucide", "lock");
+        
+        // Auto correct height to keep aspect ratio based on width
+        const widthVal = parseInt(document.getElementById("resize-width").value);
+        if (widthVal && originalWidth) {
+          const matchedHeight = Math.round(widthVal / aspectMultiplier);
+          document.getElementById("resize-height").value = matchedHeight;
+        }
+      } else {
+        aspectBtn.className = "flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1.5 rounded-lg border transition-all cursor-pointer bg-slate-50 border-slate-200 text-slate-500 dark:bg-slate-950 dark:border-slate-800";
+        aspectText.textContent = "Unlock Aspect Ratio";
+        icon.setAttribute("data-lucide", "unlock");
+      }
+      lucide.createIcons();
+    }
+
+    // Dynamic width input constraint
+    function handleWidthInput(val) {
+      const width = parseInt(val);
+      if (maintainAspectRatio && width && originalWidth) {
+        const heightVal = Math.round(width / aspectMultiplier);
+        document.getElementById("resize-height").value = heightVal;
+      }
+    }
+
+    // Dynamic height input constraint
+    function handleHeightInput(val) {
+      const height = parseInt(val);
+      if (maintainAspectRatio && height && originalHeight) {
+        const widthVal = Math.round(height * aspectMultiplier);
+        document.getElementById("resize-width").value = widthVal;
+      }
+    }
+
+    // Dynamic percentage slider scale
+    function handlePercentageChange(val) {
+      percentageScale = parseInt(val);
+      document.getElementById("scale-value").textContent = `${percentageScale}%`;
+      updateScaleResolutionPreview();
+    }
+
+    // Quick presets handler
+    function setPercentagePreset(val) {
+      percentageScale = val;
+      document.getElementById("resize-percentage").value = val;
+      document.getElementById("scale-value").textContent = `${val}%`;
+      updateScaleResolutionPreview();
+    }
+
+    // Preview percentage label
+    function updateScaleResolutionPreview() {
+      if (originalWidth && originalHeight) {
+        const targetW = Math.round((originalWidth * percentageScale) / 100);
+        const targetH = Math.round((originalHeight * percentageScale) / 100);
+        document.getElementById("scale-resolution-preview").textContent = `${targetW} × ${targetH} px`;
+      } else {
+        document.getElementById("scale-resolution-preview").textContent = "";
+      }
+    }
+
+    // Format buttons select
+    function setFormat(newFormat) {
+      outputFormat = newFormat;
+      const jpgBtn = document.getElementById("format-jpg-btn");
+      const pngBtn = document.getElementById("format-png-btn");
+      const webpBtn = document.getElementById("format-webp-btn");
+      
+      const activeClass = "flex-1 py-1.5 rounded-lg border border-indigo-600 bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 text-xs font-bold transition-theme cursor-pointer";
+      const inactiveClass = "flex-1 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-500 dark:text-slate-400 hover:bg-slate-50 transition-theme cursor-pointer";
+      
+      jpgBtn.className = (newFormat === "jpg") ? activeClass : inactiveClass;
+      pngBtn.className = (newFormat === "png") ? activeClass : inactiveClass;
+      webpBtn.className = (newFormat === "webp") ? activeClass : inactiveClass;
+    }
+
+    // Quality slider label
+    function handleQualityChange(val) {
+      outputQuality = parseInt(val);
+      document.getElementById("quality-value").textContent = `${outputQuality}%`;
+    }
+
+    // Update disabled overlay based on uploaded state
+    function updateInterfaceState() {
+      const settingsMask = document.getElementById("settings-disabled-mask");
+      const outputMask = document.getElementById("output-disabled-mask");
+      const dropzone = document.getElementById("dropzone");
+      const previewContainer = document.getElementById("preview-container");
+      
+      if (activeFile) {
+        settingsMask.classList.add("hidden");
+        outputMask.classList.add("hidden");
+        dropzone.classList.add("hidden");
+        previewContainer.classList.remove("hidden");
+      } else {
+        settingsMask.classList.remove("hidden");
+        outputMask.classList.remove("hidden");
+        dropzone.classList.remove("hidden");
+        previewContainer.classList.add("hidden");
+        
+        // Hide outcome card
+        document.getElementById("outcome-card").classList.add("hidden");
+        
+        // Clear badges
+        document.getElementById("badge-divider").classList.add("hidden");
+        document.getElementById("badge-resized-block").classList.add("hidden");
+      }
+    }
+
+    // Trigger File Picker click
+    function triggerFileInput() {
+      document.getElementById("file-input").click();
+    }
+
+    // File selection
+    function handleFileInput(e) {
+      const file = e.target.files[0];
+      if (file) {
+        processUploadedFile(file);
+      }
+    }
+
+    // Drag-and-drop actions
+    function handleDragEnter(e) {
+      e.preventDefault();
+      document.getElementById("dropzone").classList.add("border-indigo-500", "bg-indigo-50/20");
+    }
+    
+    function handleDragOver(e) {
+      e.preventDefault();
+    }
+    
+    function handleDragLeave(e) {
+      e.preventDefault();
+      document.getElementById("dropzone").classList.remove("border-indigo-500", "bg-indigo-50/20");
+    }
+    
+    function handleDrop(e) {
+      e.preventDefault();
+      document.getElementById("dropzone").classList.remove("border-indigo-500", "bg-indigo-50/20");
+      const file = e.dataTransfer.files[0];
+      if (file) {
+        processUploadedFile(file);
+      }
+    }
+
+    // File visual layout population
+    function processUploadedFile(file) {
+      // Validate file size (20MB)
+      const maxSize = 20 * 1024 * 1024;
+      if (file.size > maxSize) {
+        showToast("Error", "File size exceeds 20MB limit.", "error");
+        return;
+      }
+      
+      // Validate image extension
+      const ext = file.name.split('.').pop().toLowerCase();
+      const validExts = ["png", "jpg", "jpeg", "webp"];
+      if (!validExts.includes(ext)) {
+        showToast("Error", "Unsupported file format. Only JPG, PNG, and WEBP are supported.", "error");
+        return;
+      }
+
+      activeFile = file;
+      originalSize = file.size;
+
+      // Render image preview and retrieve raw dimensions
+      const objectUrl = URL.createObjectURL(file);
+      const originalPreviewImg = document.getElementById("original-preview-img");
+      originalPreviewImg.src = objectUrl;
+      
+      const img = new Image();
+      img.onload = function() {
+        originalWidth = img.width;
+        originalHeight = img.height;
+        aspectMultiplier = originalWidth / originalHeight;
+        
+        // Populate inputs
+        document.getElementById("resize-width").value = originalWidth;
+        document.getElementById("resize-height").value = originalHeight;
+        
+        // Populate stats row
+        document.getElementById("info-filename").textContent = file.name;
+        document.getElementById("info-filename").title = file.name;
+        document.getElementById("info-resolution").textContent = `${originalWidth} × ${originalHeight} px`;
+        document.getElementById("info-size").textContent = formatBytes(originalSize);
+        
+        // Populate badges
+        document.getElementById("badge-original-res").textContent = `${originalWidth} × ${originalHeight}`;
+        
+        // Refresh labels
+        updateScaleResolutionPreview();
+        updateInterfaceState();
+        showToast("Upload Successful", "Image loaded and dimensions verified.", "success");
+      };
+      img.src = objectUrl;
+    }
+
+    // Format bytes utility
+    function formatBytes(bytes, decimals = 2) {
+      if (bytes === 0) return '0 Bytes';
+      const k = 1024;
+      const dm = decimals < 0 ? 0 : decimals;
+      const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+    }
+
+    // Full Reset
+    function handleReset() {
+      activeFile = null;
+      originalWidth = 0;
+      originalHeight = 0;
+      originalSize = 0;
+      aspectMultiplier = 1;
+      processedDataUrl = null;
+      processedFilename = null;
+      
+      // Reset inputs
+      document.getElementById("file-input").value = "";
+      document.getElementById("resize-width").value = "";
+      document.getElementById("resize-height").value = "";
+      document.getElementById("resize-percentage").value = "50";
+      setPercentagePreset(50);
+      setResizeMethod("dimensions");
+      if (!maintainAspectRatio) toggleAspectRatio();
+      setFormat("png");
+      document.getElementById("output-quality").value = "80";
+      handleQualityChange(80);
+      
+      updateInterfaceState();
+      showToast("Reset Complete", "All parameters cleared.", "info");
+    }
+
+    // Submit AJAX request
+    async function triggerProcessResize() {
+      if (!activeFile) {
+        showToast("Error", "Please upload an image first.", "error");
+        return;
+      }
+      
+      const overlay = document.getElementById("processing-overlay");
+      overlay.classList.remove("hidden");
+      
+      const formData = new FormData();
+      formData.append("image", activeFile);
+      formData.append("resizeMode", resizeMode);
+      formData.append("format", outputFormat);
+      formData.append("quality", outputQuality.toString());
+      
+      if (resizeMode === "dimensions") {
+        const wVal = document.getElementById("resize-width").value;
+        const hVal = document.getElementById("resize-height").value;
+        formData.append("width", wVal);
+        formData.append("height", hVal);
+        formData.append("maintainAspectRatio", maintainAspectRatio ? "true" : "false");
+      } else {
+        formData.append("percentage", percentageScale.toString());
+      }
+
+      try {
+        const response = await fetch("/api/resize", {
+          method: "POST",
+          body: formData
+        });
+        
+        let result;
+        const contentType = response.headers.get("Content-Type") || "";
+        if (contentType.includes("application/json")) {
+          result = await response.json();
+        } else {
+          const text = await response.text();
+          throw new Error(`Server returned non-JSON response (${response.status}): ${text.substring(0, 120)}...`);
+        }
+        
+        if (!response.ok || !result.success) {
+          throw new Error(result.error || "Image processing failed on python backend.");
+        }
+        
+        // Save output data
+        processedDataUrl = result.data_url;
+        processedFilename = result.filename;
+        
+        // Display floating dimension indicators
+        document.getElementById("badge-divider").classList.remove("hidden");
+        const resBadgeBlock = document.getElementById("badge-resized-block");
+        resBadgeBlock.classList.remove("hidden");
+        document.getElementById("badge-resized-res").textContent = `${result.width} × ${result.height}`;
+        
+        // Populate outcomes comparison card
+        document.getElementById("outcome-size-before").textContent = formatBytes(originalSize);
+        document.getElementById("outcome-size-after").textContent = formatBytes(result.size_bytes);
+        
+        const savingsPercent = Math.round(((originalSize - result.size_bytes) / originalSize) * 100);
+        const savingsBadge = document.getElementById("outcome-size-savings");
+        if (savingsPercent > 0) {
+          savingsBadge.className = "text-[10px] font-bold text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded flex items-center gap-1";
+          savingsBadge.querySelector("span").textContent = `${savingsPercent}% saved`;
+        } else if (savingsPercent < 0) {
+          savingsBadge.className = "text-[10px] font-bold text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded flex items-center gap-1";
+          savingsBadge.querySelector("span").textContent = `Increased`;
+        } else {
+          savingsBadge.className = "text-[10px] font-bold text-slate-500 bg-slate-500/10 px-2 py-0.5 rounded flex items-center gap-1";
+          savingsBadge.querySelector("span").textContent = "Equal size";
+        }
+        
+        document.getElementById("outcome-res-before").textContent = `${originalWidth} × ${originalHeight} px`;
+        document.getElementById("outcome-res-after").textContent = `${result.width} × ${result.height} px`;
+        document.getElementById("outcome-format-badge").textContent = outputFormat;
+        
+        // Display outcome comparison card with scrolling
+        const outcomeCard = document.getElementById("outcome-card");
+        outcomeCard.classList.remove("hidden");
+        
+        // Scroll smoothly to outcome card
+        outcomeCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        
+        showToast("Success", "Your image has been optimized.", "success");
+      } catch (error) {
+        console.error(error);
+        showToast("Processing Failed", error.message || "Unknown error.", "error");
+      } finally {
+        overlay.classList.add("hidden");
+      }
+    }
+
+    // Trigger instant download in client
+    function downloadProcessedImage() {
+      if (!processedDataUrl || !processedFilename) return;
+      
+      const link = document.createElement("a");
+      link.href = processedDataUrl;
+      link.download = processedFilename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      showToast("Download Initialized", "Your file is downloading.", "success");
+    }
+
+    // Helper toast notification banner
+    function showToast(title, message, type = "info") {
+      const toast = document.getElementById("toast");
+      const titleEl = document.getElementById("toast-title");
+      const messageEl = document.getElementById("toast-message");
+      const iconContainer = document.getElementById("toast-icon-container");
+      
+      titleEl.textContent = title;
+      messageEl.textContent = message;
+      
+      if (type === "success") {
+        iconContainer.className = "p-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400";
+        iconContainer.innerHTML = '<i data-lucide="check-circle" class="w-5 h-5"></i>';
+      } else if (type === "error") {
+        iconContainer.className = "p-1.5 rounded-lg bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400";
+        iconContainer.innerHTML = '<i data-lucide="alert-triangle" class="w-5 h-5"></i>';
+      } else {
+        iconContainer.className = "p-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400";
+        iconContainer.innerHTML = '<i data-lucide="info" class="w-5 h-5"></i>';
+      }
+      
+      lucide.createIcons();
+      
+      // Animated slide-in
+      toast.classList.remove("translate-y-12", "opacity-0", "pointer-events-none");
+      toast.classList.add("translate-y-0", "opacity-100");
+      
+      // Auto hide
+      setTimeout(() => {
+        hideToast();
+      }, 5000);
+    }
+
+    function hideToast() {
+      const toast = document.getElementById("toast");
+      toast.classList.remove("translate-y-0", "opacity-100");
+      toast.classList.add("translate-y-12", "opacity-0", "pointer-events-none");
+    }
+  </script>
+</body>
+</html>

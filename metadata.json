@@ -1,0 +1,6 @@
+{
+  "name": "Image Resizer",
+  "description": "A high-performance Python image processor powered by ImageMagick to resize, format, and optimize images.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
